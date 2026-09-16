@@ -17,7 +17,7 @@ function App() {
   useEffect(() => {
     // Detect platform
     setPlatform(DOMHelpers.detectPlatform());
-    console.log(`Brava running on: ${platform}`);
+    console.log(`Brava running on: somthing`);
 
     // Listen for text selection
     const handleSelection = () => {

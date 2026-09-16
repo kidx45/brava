@@ -8,20 +8,20 @@ const __dirname = path.dirname(__filename);
 
 export default {
   mode: 'development',
-  devtool: 'source-map',
-  
+  devtool: 'cheap-module-source-map',
+
   entry: {
     content: './src/content/index.js',
     background: './src/background/background.js',
     popup: './src/popup/index.js',
   },
-  
+
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     clean: true,
   },
-  
+
   module: {
     rules: [
       {
@@ -40,11 +40,11 @@ export default {
       }
     ]
   },
-  
+
   resolve: {
     extensions: ['.js', '.jsx']
   },
-  
+
   plugins: [
     new CopyPlugin({
       patterns: [

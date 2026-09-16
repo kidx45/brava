@@ -8,7 +8,7 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
     : selectedText;
 
   const platformColors = {
-    chatgpt: '#10a37f',
+    chatgpt: '#ad1766',
     claude: '#d97757',
     gemini: '#4285f4',
     unknown: '#6c757d'

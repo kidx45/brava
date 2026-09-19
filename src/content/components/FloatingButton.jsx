@@ -38,10 +38,9 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
         disabled={isArchiving}
         className="archive-action-btn"
         style={{
+          '--archive-accent': isArchiving ? '#6c757d' : platformColors[platform] || '#007bff',
           padding: '6px 16px',
-          background: isArchiving ? '#6c757d' : platformColors[platform] || '#007bff',
           color: 'white',
-          border: 'none',
           borderRadius: '4px',
           cursor: isArchiving ? 'not-allowed' : 'pointer',
           fontSize: '14px',

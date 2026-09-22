@@ -4,7 +4,6 @@ import { gsap } from 'gsap';
 
 function FloatingButton({ position, onArchive, selectedText, isArchiving, platform }) {
   const buttonRef = useRef(null);
-  const dropRef = useRef(null);
   const maxLength = 30;
   const displayText = selectedText.length > maxLength
     ? selectedText.substring(0, maxLength) + '...'
@@ -22,34 +21,25 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
 
     timeline
       .fromTo(buttonRef.current,
-        { y: -160, opacity: 0, scaleX: 0.86, scaleY: 1.16, transformOrigin: '50% 0%' },
-        { y: 8, opacity: 1, duration: 0.42, ease: 'power2.in' }
+        { y: -160, filter: "blur(10px)", opacity: 0.2, scaleX: 0.86, scaleY: 1.16, transformOrigin: '50% 0%' },
+        { y: 8, opacity: 1, duration: 0.42, ease: 'sine.in' }
       )
       .to(buttonRef.current, {
         y: -4,
         scaleX: 1.05,
         scaleY: 0.92,
+        filter: "blur(5px)",
         duration: 0.12,
-        ease: 'power2.out',
+        ease: 'sine.out',
       })
       .to(buttonRef.current, {
         y: 0,
         scaleX: 1,
         scaleY: 1,
+        filter: "blur(0px)",
         duration: 0.55,
         ease: 'elastic.out(1, 0.45)',
         onComplete: () => gsap.set(buttonRef.current, { clearProps: 'transform' }),
-      })
-      .fromTo(dropRef.current,
-        { y: -18, opacity: 0, scale: 0.5 },
-        { y: 10, opacity: 0.75, scale: 1, duration: 0.22, ease: 'power2.in' },
-        0.08
-      )
-      .to(dropRef.current, {
-        y: 28,
-        opacity: 0,
-        duration: 0.28,
-        ease: 'power1.out',
       });
 
     return () => timeline.kill();
@@ -75,7 +65,6 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
         pointerEvents: 'auto',
       }}
     >
-      <span ref={dropRef} className="selection-rain-drop" aria-hidden="true" />
       <button
         onClick={onArchive}
         disabled={isArchiving}

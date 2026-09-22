@@ -1,7 +1,10 @@
 // src/content/components/FloatingButton.jsx
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 
 function FloatingButton({ position, onArchive, selectedText, isArchiving, platform }) {
+  const buttonRef = useRef(null);
+  const dropRef = useRef(null);
   const maxLength = 30;
   const displayText = selectedText.length > maxLength
     ? selectedText.substring(0, maxLength) + '...'
@@ -14,8 +17,47 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
     unknown: '#6c757d'
   };
 
+  useLayoutEffect(() => {
+    const timeline = gsap.timeline();
+
+    timeline
+      .fromTo(buttonRef.current,
+        { y: -160, opacity: 0, scaleX: 0.86, scaleY: 1.16, transformOrigin: '50% 0%' },
+        { y: 8, opacity: 1, duration: 0.42, ease: 'power2.in' }
+      )
+      .to(buttonRef.current, {
+        y: -4,
+        scaleX: 1.05,
+        scaleY: 0.92,
+        duration: 0.12,
+        ease: 'power2.out',
+      })
+      .to(buttonRef.current, {
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.55,
+        ease: 'elastic.out(1, 0.45)',
+        onComplete: () => gsap.set(buttonRef.current, { clearProps: 'transform' }),
+      })
+      .fromTo(dropRef.current,
+        { y: -18, opacity: 0, scale: 0.5 },
+        { y: 10, opacity: 0.75, scale: 1, duration: 0.22, ease: 'power2.in' },
+        0.08
+      )
+      .to(dropRef.current, {
+        y: 28,
+        opacity: 0,
+        duration: 0.28,
+        ease: 'power1.out',
+      });
+
+    return () => timeline.kill();
+  }, []);
+
   return (
     <div
+      ref={buttonRef}
       className="floating-archive-btn"
       style={{
         position: 'fixed',
@@ -33,6 +75,7 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
         pointerEvents: 'auto',
       }}
     >
+      <span ref={dropRef} className="selection-rain-drop" aria-hidden="true" />
       <button
         onClick={onArchive}
         disabled={isArchiving}

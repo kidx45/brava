@@ -8,7 +8,7 @@ function Notification({ type, message, onClose }) {
   }, [onClose]);
 
   const colors = {
-    success: '#28a745',
+    success: '#280888',
     error: '#dc3545',
     info: '#17a2b8'
   };

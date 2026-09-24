@@ -1,7 +1,7 @@
 // src/content/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
+import App from './App';
 import './styles/content.css';
 
 // Function to safely inject our app

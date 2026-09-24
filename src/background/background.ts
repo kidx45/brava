@@ -1,5 +1,5 @@
 // src/background/background.js
-import { APP, STORAGE, MESSAGE_TYPES } from '../utils/constants.js';
+import { APP, STORAGE, MESSAGE_TYPES, type ArchivedMessage, type ArchiveMessageData } from '../utils/constants';
 
 console.log(`${APP.NAME} v${APP.VERSION} background script loaded`);
 
@@ -69,10 +69,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Helper functions
-async function handleArchiveMessage(data) {
+async function handleArchiveMessage(data: ArchiveMessageData): Promise<ArchivedMessage> {
   try {
     const result = await chrome.storage.local.get([STORAGE.KEY]);
-    const messages = result[STORAGE.KEY] || [];
+    const messages = (result[STORAGE.KEY] as ArchivedMessage[] | undefined) || [];
     const newMessage = {
       ...data,
       id: data.id || Date.now().toString(),
@@ -88,17 +88,17 @@ async function handleArchiveMessage(data) {
   }
 }
 
-async function getMessages() {
+async function getMessages(): Promise<ArchivedMessage[]> {
   try {
     const result = await chrome.storage.local.get([STORAGE.KEY]);
-    return result[STORAGE.KEY] || [];
+    return (result[STORAGE.KEY] as ArchivedMessage[] | undefined) || [];
   } catch (error) {
     console.error('Error getting messages:', error);
     throw error;
   }
 }
 
-async function deleteMessage(id) {
+async function deleteMessage(id: string): Promise<ArchivedMessage[]> {
   try {
     const messages = await getMessages();
     const filtered = messages.filter(msg => msg.id !== id);
@@ -121,7 +121,7 @@ async function clearAllMessages() {
   }
 }
 
-async function getStats() {
+async function getStats(): Promise<{ total: number; todayCount: number; platforms: Record<string, number> }> {
   try {
     const messages = await getMessages();
     const total = messages.length;
@@ -130,7 +130,7 @@ async function getStats() {
       new Date(msg.timestamp).toDateString() === today
     ).length;
 
-    const platforms = {};
+    const platforms: Record<string, number> = {};
     messages.forEach(msg => {
       const platform = msg.platform || 'unknown';
       platforms[platform] = (platforms[platform] || 0) + 1;
@@ -153,7 +153,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'archive-selection' && info.selectionText) {
+  if (info.menuItemId === 'archive-selection' && info.selectionText && tab?.id !== undefined) {
     // Send message to content script
     chrome.tabs.sendMessage(tab.id, {
       type: MESSAGE_TYPES.ARCHIVE_SELECTION,

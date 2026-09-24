@@ -1,7 +1,14 @@
-// src/popup/components/Controls.jsx
+// src/popup/components/Controls.tsx
 import React from 'react';
 
-function Controls({ messages, onClearAll }) {
+import type { ArchivedMessage } from '../../utils/constants';
+
+type ControlsProps = {
+  messages: ArchivedMessage[];
+  onClearAll: () => Promise<void>;
+};
+
+function Controls({ messages, onClearAll }: ControlsProps) {
   const exportAll = () => {
     const data = {
       exportedAt: new Date().toISOString(),

@@ -1,10 +1,16 @@
-// src/popup/components/MessageItem.jsx
+// src/popup/components/MessageItem.tsx
 import React, { useState } from 'react';
+import type { ArchivedMessage } from '../../utils/constants';
 
-function MessageItem({ message, onDelete }) {
+type MessageItemProps = {
+  message: ArchivedMessage;
+  onDelete: (id: string) => Promise<void>;
+};
+
+function MessageItem({ message, onDelete }: MessageItemProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const platformColors = {
+  const platformColors: Record<string, string> = {
     chatgpt: '#10a37f',
     claude: '#d97757',
     gemini: '#4285f4',

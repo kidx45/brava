@@ -45,6 +45,25 @@ export const STORAGE = {
   DEFAULT_VALUE: []
 };
 
+export type Platform = 'chatgpt' | 'claude' | 'gemini' | 'unknown';
+
+export type ArchivedMessage = {
+  id: string;
+  selectedText: string;
+  fullText: string;
+  question: string;
+  url: string;
+  role: string;
+  platform: Platform;
+  timestamp: string;
+  chatTitle: string;
+  archivedAt?: string;
+};
+
+export type ArchiveMessageData = Omit<ArchivedMessage, 'id' | 'archivedAt'> & {
+  id?: string;
+};
+
 // Message types for communication
 export const MESSAGE_TYPES = {
   ARCHIVE_MESSAGE: 'ARCHIVE_MESSAGE',

@@ -1,13 +1,19 @@
-// src/content/components/Notification.jsx
+// src/content/components/Notification.tsx
 import React, { useEffect } from 'react';
 
-function Notification({ type, message, onClose }) {
+type NotificationProps = {
+  type: 'success' | 'error' | 'info';
+  message: string;
+  onClose: () => void;
+};
+
+function Notification({ type, message, onClose }: NotificationProps) {
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
     return () => clearTimeout(timer);
   }, [onClose]);
 
-  const colors = {
+  const colors: Record<NotificationProps['type'], string> = {
     success: '#280888',
     error: '#dc3545',
     info: '#17a2b8'

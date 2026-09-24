@@ -1,8 +1,8 @@
-// src/utils/dom.js
-import { SELECTORS } from './constants.js';
+// src/utils/dom.ts
+import { SELECTORS, type Platform } from './constants';
 
 export const DOMHelpers = {
-  detectPlatform() {
+  detectPlatform(): Platform {
     try {
       const url = window.location.href;
       if (url.includes('chat.openai.com') || url.includes('chatgpt.com')) {
@@ -19,20 +19,24 @@ export const DOMHelpers = {
     }
   },
 
-  findMessageContainer(element) {
+  findMessageContainer(element: Node | null): HTMLElement | null {
     try {
       if (!element) return null;
 
+      const target = element instanceof Element ? element : element.parentElement;
+      if (!target) return null;
+
       const platform = this.detectPlatform();
-      const selectors = SELECTORS[platform.toUpperCase()] || SELECTORS.CHATGPT;
+      const selectors: Record<string, string> =
+        SELECTORS[platform.toUpperCase() as keyof typeof SELECTORS] || SELECTORS.CHATGPT;
 
       // Try platform-specific selectors
       for (const key in selectors) {
         const selector = selectors[key];
         if (typeof selector === 'string') {
           try {
-            const container = element.closest(selector);
-            if (container) return container;
+            const container = target.closest(selector);
+            if (container) return container as HTMLElement;
           } catch (e) {
             // Continue to next selector
           }
@@ -53,18 +57,18 @@ export const DOMHelpers = {
 
       for (const selector of genericSelectors) {
         try {
-          const container = element.closest(selector);
-          if (container) return container;
+          const container = target.closest(selector);
+          if (container) return container as HTMLElement;
         } catch (e) {
           // Continue
         }
       }
 
       // Last resort: find parent with role attribute
-      let current = element;
+      let current: Element | null = target;
       while (current && current !== document.body) {
         if (current.hasAttribute && current.hasAttribute('data-message-author-role')) {
-          return current;
+          return current as HTMLElement;
         }
         current = current.parentElement;
       }
@@ -76,7 +80,7 @@ export const DOMHelpers = {
     }
   },
 
-  getMessageRole(element) {
+  getMessageRole(element: HTMLElement | null): string {
     try {
       if (!element) return 'unknown';
 
@@ -97,7 +101,7 @@ export const DOMHelpers = {
     }
   },
 
-  findPreviousQuestion(messageElement) {
+  findPreviousQuestion(messageElement: HTMLElement | null): string {
     try {
       if (!messageElement) return 'Unknown question';
 

@@ -1,16 +1,24 @@
-// src/content/components/FloatingButton.jsx
+// src/content/components/FloatingButton.tsx
 import React, { useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 
-function FloatingButton({ position, onArchive, selectedText, isArchiving, platform }) {
-  const buttonRef = useRef(null);
+type FloatingButtonProps = {
+  position: { x: number; y: number };
+  onArchive: () => Promise<void>;
+  selectedText: string;
+  isArchiving: boolean;
+  platform: string;
+};
+
+function FloatingButton({ position, onArchive, selectedText, isArchiving, platform }: FloatingButtonProps) {
+  const buttonRef = useRef<HTMLDivElement>(null);
   const maxLength = 30;
   const displayText = selectedText.length > maxLength
     ? selectedText.substring(0, maxLength) + '...'
     : selectedText;
 
-  const platformColors = {
-    chatgpt: '#ad1766',
+  const platformColors: Record<string, string> = {
+    chatgpt: '#00ffff',
     claude: '#d97757',
     gemini: '#4285f4',
     unknown: '#6c757d'
@@ -42,7 +50,9 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
         onComplete: () => gsap.set(buttonRef.current, { clearProps: 'transform' }),
       });
 
-    return () => timeline.kill();
+    return () => {
+      timeline.kill();
+    };
   }, []);
 
   return (
@@ -78,7 +88,7 @@ function FloatingButton({ position, onArchive, selectedText, isArchiving, platfo
           fontSize: '14px',
           fontWeight: 500,
           transition: 'all 0.2s',
-        }}
+        } as React.CSSProperties & Record<'--archive-accent', string>}
       >
         {isArchiving ? '⏳ Saving...' : '📥 Archive'}
       </button>

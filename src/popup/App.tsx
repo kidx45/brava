@@ -1,11 +1,12 @@
-// src/popup/App.jsx
+// src/popup/App.tsx
 import React, { useState, useEffect } from 'react';
-import MessageList from './components/MessageList.jsx';
-import Controls from './components/Controls.jsx';
-import { StorageManager } from '../utils/storage.js';
+import MessageList from './components/MessageList';
+import Controls from './components/Controls';
+import { StorageManager } from '../utils/storage';
+import type { ArchivedMessage } from '../utils/constants';
 
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ArchivedMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadMessages = async () => {
@@ -20,7 +21,7 @@ function App() {
     loadMessages();
   }, []);
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: string) => {
     await StorageManager.deleteMessage(id);
     await loadMessages();
   };

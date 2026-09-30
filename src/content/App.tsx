@@ -29,14 +29,14 @@ function App() {
         const container = range.commonAncestorContainer;
         const messageElement = DOMHelpers.findMessageContainer(container);
 
-        if (messageElement) {
-          setSelectedText(text);
-          setShowButton(true);
-          setButtonPosition({
-            x: window.innerWidth / 2 - 80,
-            y: 20
-          });
-        }
+        // Keep the selection action available even when ChatGPT changes its
+        // message markup and findMessageContainer cannot identify the message.
+        setSelectedText(text);
+        setShowButton(true);
+        setButtonPosition({
+          x: window.innerWidth / 2 - 80,
+          y: 20
+        });
       } else {
         setShowButton(false);
       }
@@ -77,14 +77,11 @@ function App() {
       const range = selection.getRangeAt(0);
       const container = range.commonAncestorContainer;
       const messageElement = DOMHelpers.findMessageContainer(container);
-
-      if (!messageElement) {
-        throw new Error('Could not find message container');
-      }
-
-      const fullText = messageElement.textContent ?? '';
-      const question = DOMHelpers.findPreviousQuestion(messageElement);
-      const role = DOMHelpers.getMessageRole(messageElement);
+      const fullText = messageElement?.textContent ?? selectedText;
+      const question = messageElement
+        ? DOMHelpers.findPreviousQuestion(messageElement)
+        : 'Unknown question';
+      const role = messageElement ? DOMHelpers.getMessageRole(messageElement) : 'unknown';
       const url = window.location.href;
 
       const archiveData = {

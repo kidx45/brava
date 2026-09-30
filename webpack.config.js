@@ -10,19 +10,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default {
-  mode: 'development',
-  devtool: 'cheap-module-source-map',
+  mode: 'development', // When the extension is in dev mode making it easier for testing and debuging 
+  devtool: 'cheap-module-source-map', // attach changes to the /dist file to make such when changes occur 
 
   entry: {
     content: './src/content/index.tsx',
     background: './src/background/background.ts',
     popup: './src/popup/index.tsx',
-  },
+  }, // Three basic properties for 
 
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: '[name].js',
-    clean: true,
+    path: path.resolve(__dirname, 'dist'), // What folder to output the results in 
+    filename: '[name].js', // The file name and extension
+    clean: true, // Whether on rebuild to deletes everything and re does it
   },
 
   module: {

@@ -1,5 +1,16 @@
 // src/background/background.js
-import { APP, STORAGE, MESSAGE_TYPES, type ArchivedMessage, type ArchiveMessageData } from '../utils/constants';
+import {
+  APP,
+  STORAGE,
+  MESSAGE_TYPES,
+  AI_CONFIG,
+  type ArchivedMessage,
+  type ArchiveMessageData,
+  type ChatMessage,
+  type ChatSession,
+  type PendingChatDraft
+} from '../utils/constants';
+import { AIClient } from '../utils/aiClient';
 
 console.log(`${APP.NAME} v${APP.VERSION} background script loaded`);
 
@@ -60,6 +71,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case MESSAGE_TYPES.GET_STATS:
       getStats()
         .then(stats => sendResponse({ success: true, stats }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    // ---- Chat ----
+    case MESSAGE_TYPES.GET_CHAT_SESSIONS:
+      getChatSessions()
+        .then(sessions => sendResponse({ success: true, sessions }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.CREATE_CHAT_SESSION:
+      createChatSession(request.title)
+        .then(session => sendResponse({ success: true, session }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.SEND_CHAT_MESSAGE:
+      sendChatMessage(request.sessionId, request.content)
+        .then(session => sendResponse({ success: true, session }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.RENAME_CHAT_SESSION:
+      renameChatSession(request.sessionId, request.title)
+        .then(session => sendResponse({ success: true, session }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.DELETE_CHAT_SESSION:
+      deleteChatSession(request.sessionId)
+        .then(sessions => sendResponse({ success: true, sessions }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    // ---- Pending draft (notification -> popup handoff) ----
+    case MESSAGE_TYPES.SAVE_PENDING_DRAFT:
+      savePendingDraft(request.draft ?? null)
+        .then(() => sendResponse({ success: true }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.GET_PENDING_DRAFT:
+      getPendingDraft()
+        .then(draft => sendResponse({ success: true, draft }))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+
+    case MESSAGE_TYPES.OPEN_POPUP_CHAT:
+      openChatWindow(request.draftText)
+        .then(() => sendResponse({ success: true }))
         .catch(error => sendResponse({ success: false, error: error.message }));
       return true;
 
@@ -139,6 +200,194 @@ async function getStats(): Promise<{ total: number; todayCount: number; platform
     return { total, todayCount, platforms };
   } catch (error) {
     console.error('Error getting stats:', error);
+    throw error;
+  }
+}
+
+// ---- Chat helpers ----
+async function getChatSessions(): Promise<ChatSession[]> {
+  try {
+    const result = await chrome.storage.local.get([STORAGE.CHAT_SESSIONS_KEY]);
+    const sessions = (result[STORAGE.CHAT_SESSIONS_KEY] as ChatSession[] | undefined) || [];
+    return [...sessions].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  } catch (error) {
+    console.error('Error getting chat sessions:', error);
+    throw error;
+  }
+}
+
+async function createChatSession(title?: string): Promise<ChatSession> {
+  try {
+    const now = new Date().toISOString();
+    const session: ChatSession = {
+      id: `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: title || 'New chat',
+      createdAt: now,
+      updatedAt: now,
+      messages: []
+    };
+    const sessions = await getChatSessions();
+    sessions.unshift(session);
+    await chrome.storage.local.set({ [STORAGE.CHAT_SESSIONS_KEY]: sessions });
+    console.log(`Chat session created: ${session.id}`);
+    return session;
+  } catch (error) {
+    console.error('Error creating chat session:', error);
+    throw error;
+  }
+}
+
+async function withChatSession(
+  sessionId: string,
+  mutate: (session: ChatSession) => ChatSession | Promise<ChatSession>
+): Promise<ChatSession> {
+  const sessions = await getChatSessions();
+  const index = sessions.findIndex(s => s.id === sessionId);
+  if (index === -1) {
+    throw new Error('Chat session not found');
+  }
+  const updated = await mutate(sessions[index]);
+  sessions[index] = updated;
+  await chrome.storage.local.set({ [STORAGE.CHAT_SESSIONS_KEY]: sessions });
+  return updated;
+}
+
+async function sendChatMessage(sessionId: string, content: string): Promise<ChatSession> {
+  try {
+    const trimmed = content.trim();
+    if (!trimmed) throw new Error('Message is empty');
+
+    const now = new Date().toISOString();
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}-u`,
+      role: 'user',
+      content: trimmed,
+      timestamp: now,
+      status: 'done'
+    };
+    const assistantMessage: ChatMessage = {
+      id: `msg-${Date.now()}-a`,
+      role: 'assistant',
+      content: '',
+      timestamp: now,
+      status: 'pending'
+    };
+
+    // Store the user turn first so nothing is lost if the AI call fails.
+    let history: ChatMessage[] = [];
+    await withChatSession(sessionId, (session) => {
+      history = [...session.messages, userMessage];
+      return {
+        ...session,
+        title: session.title === 'New chat'
+          ? deriveTitle(trimmed)
+          : session.title,
+        messages: history,
+        updatedAt: now
+      };
+    });
+
+    // TODO: replace with a fetch to the Go backend (see src/utils/aiClient.ts).
+    let replyText = '';
+    try {
+      replyText = AIClient.stubReply(history.map(m => ({ role: m.role, content: m.content })));
+    } catch (aiError) {
+      console.error('AI reply failed:', aiError);
+      replyText = 'Sorry, the AI is not reachable right now. Please try again.';
+    }
+
+    return await withChatSession(sessionId, (session) => ({
+      ...session,
+      messages: session.messages.map(m =>
+        m.id === assistantMessage.id
+          ? { ...m, content: replyText, status: 'done' as const, timestamp: new Date().toISOString() }
+          : m
+      ),
+      updatedAt: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Error sending chat message:', error);
+    throw error;
+  }
+}
+
+function deriveTitle(text: string): string {
+  return text.length > 32 ? text.slice(0, 32).trimEnd() + '…' : text;
+}
+
+async function renameChatSession(sessionId: string, title: string): Promise<ChatSession> {
+  try {
+    const trimmed = title.trim();
+    if (!trimmed) throw new Error('Title is empty');
+    return await withChatSession(sessionId, (session) => ({
+      ...session,
+      title: trimmed,
+      updatedAt: new Date().toISOString()
+    }));
+  } catch (error) {
+    console.error('Error renaming chat session:', error);
+    throw error;
+  }
+}
+
+async function deleteChatSession(sessionId: string): Promise<ChatSession[]> {
+  try {
+    const sessions = await getChatSessions();
+    const remaining = sessions.filter(s => s.id !== sessionId);
+    await chrome.storage.local.set({ [STORAGE.CHAT_SESSIONS_KEY]: remaining });
+    console.log(`Chat session deleted. Remaining: ${remaining.length}`);
+    return remaining;
+  } catch (error) {
+    console.error('Error deleting chat session:', error);
+    throw error;
+  }
+}
+
+// ---- Pending draft helpers ----
+async function savePendingDraft(draft: PendingChatDraft | null): Promise<void> {
+  try {
+    if (draft === null) {
+      await chrome.storage.local.remove([STORAGE.PENDING_CHAT_DRAFT_KEY]);
+    } else {
+      await chrome.storage.local.set({ [STORAGE.PENDING_CHAT_DRAFT_KEY]: draft });
+    }
+  } catch (error) {
+    console.error('Error saving pending draft:', error);
+    throw error;
+  }
+}
+
+async function getPendingDraft(): Promise<PendingChatDraft | null> {
+  try {
+    const result = await chrome.storage.local.get([STORAGE.PENDING_CHAT_DRAFT_KEY]);
+    return (result[STORAGE.PENDING_CHAT_DRAFT_KEY] as PendingChatDraft | undefined) || null;
+  } catch (error) {
+    console.error('Error getting pending draft:', error);
+    throw error;
+  }
+}
+
+// Opens the popup page in a small standalone window and seeds the chat draft.
+// Used by the notification's "Go to chat" action.
+async function openChatWindow(draftText?: string): Promise<void> {
+  try {
+    if (draftText) {
+      await savePendingDraft({
+        text: draftText,
+        chatTitle: 'From archive',
+        platform: 'unknown',
+        sourceUrl: '',
+        createdAt: new Date().toISOString()
+      });
+    }
+    await chrome.windows.create({
+      url: chrome.runtime.getURL('popup.html?view=chat'),
+      type: 'popup',
+      width: 420,
+      height: 600
+    });
+  } catch (error) {
+    console.error('Error opening chat window:', error);
     throw error;
   }
 }

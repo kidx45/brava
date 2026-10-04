@@ -53,3 +53,31 @@
 .archive-action-btn:active {
   transform: translateY(0);
 }
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.brava-notification-btn:active {
+  transform: scale(0.97);
+}
+
+.brava-notification-btn {
+  transition: background 0.15s, transform 0.1s;
+}
+
+.brava-notification-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.brava-notification-btn.primary:hover,
+.brava-notification-btn[style*="rgba(255, 255, 255, 0.95)"]:hover {
+  background: white !important;
+}

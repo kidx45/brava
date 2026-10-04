@@ -42,7 +42,16 @@ export const NOTIFICATION_TYPES = {
 
 export const STORAGE = {
   KEY: APP.STORAGE_KEY,  // Alias for easier access
-  DEFAULT_VALUE: []
+  DEFAULT_VALUE: [],
+  CHAT_SESSIONS_KEY: 'bravaChatSessions',
+  PENDING_CHAT_DRAFT_KEY: 'bravaPendingChatDraft'
+};
+
+export const AI_CONFIG = {
+  // TODO: point this at the Go backend when it is ready
+  ENDPOINT: 'http://localhost:8080/api/chat',
+  TIMEOUT_MS: 30000,
+  SYSTEM_PROMPT: 'Answer in the most concise and simple way possible. Be brief, clear and direct. Avoid filler, disclaimers and long explanations unless explicitly asked.'
 };
 
 export type Platform = 'chatgpt' | 'claude' | 'gemini' | 'unknown';
@@ -64,6 +73,33 @@ export type ArchiveMessageData = Omit<ArchivedMessage, 'id' | 'archivedAt'> & {
   id?: string;
 };
 
+export type ChatRole = 'user' | 'assistant';
+
+export type ChatMessage = {
+  id: string;
+  role: ChatRole;
+  content: string;
+  timestamp: string;
+  status?: 'pending' | 'done' | 'error';
+};
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
+};
+
+// Draft dropped by the content script when the user picks "Go to chat"
+export type PendingChatDraft = {
+  text: string;
+  chatTitle: string;
+  platform: Platform;
+  sourceUrl: string;
+  createdAt: string;
+};
+
 // Message types for communication
 export const MESSAGE_TYPES = {
   ARCHIVE_MESSAGE: 'ARCHIVE_MESSAGE',
@@ -71,5 +107,14 @@ export const MESSAGE_TYPES = {
   DELETE_MESSAGE: 'DELETE_MESSAGE',
   CLEAR_ALL: 'CLEAR_ALL',
   GET_STATS: 'GET_STATS',
-  ARCHIVE_SELECTION: 'ARCHIVE_SELECTION'
+  ARCHIVE_SELECTION: 'ARCHIVE_SELECTION',
+  // Chat
+  GET_CHAT_SESSIONS: 'GET_CHAT_SESSIONS',
+  CREATE_CHAT_SESSION: 'CREATE_CHAT_SESSION',
+  SEND_CHAT_MESSAGE: 'SEND_CHAT_MESSAGE',
+  RENAME_CHAT_SESSION: 'RENAME_CHAT_SESSION',
+  DELETE_CHAT_SESSION: 'DELETE_CHAT_SESSION',
+  SAVE_PENDING_DRAFT: 'SAVE_PENDING_DRAFT',
+  GET_PENDING_DRAFT: 'GET_PENDING_DRAFT',
+  OPEN_POPUP_CHAT: 'OPEN_POPUP_CHAT'
 };

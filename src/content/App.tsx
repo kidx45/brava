@@ -1,7 +1,7 @@
 // src/content/App.tsx
 import React, { useState, useEffect } from 'react';
 import FloatingButton from './components/FloatingButton';
-import Notification from './components/Notification';
+import Notification, { type NotificationAction } from './components/Notification';
 import { StorageManager } from '../utils/storage';
 import { DOMHelpers } from '../utils/dom';
 import { KEYBOARD_SHORTCUTS, type Platform } from '../utils/constants';
@@ -99,7 +99,43 @@ function App() {
 
       setNotification({
         type: 'success',
-        message: '✨ Archived successfully! (Ctrl+Shift+A)'
+        message: '✨ Archived successfully!',
+        actions: [
+          {
+            label: 'Save for later',
+            kind: 'secondary',
+            onClick: async () => {
+              try {
+                await StorageManager.savePendingDraft({
+                  text: selectedText,
+                  chatTitle: archiveData.chatTitle,
+                  platform,
+                  sourceUrl: archiveData.url,
+                  createdAt: new Date().toISOString()
+                });
+                setNotification({
+                  type: 'info',
+                  message: '💾 Saved for later — open Brava to send it to chat.'
+                });
+              } catch (error) {
+                console.error('Failed to save draft:', error);
+                setNotification({ type: 'error', message: 'Failed to save draft.' });
+              }
+            }
+          },
+          {
+            label: 'Go to chat →',
+            kind: 'primary',
+            onClick: async () => {
+              try {
+                await StorageManager.openChatPopup(selectedText);
+              } catch (error) {
+                console.error('Failed to open chat:', error);
+                setNotification({ type: 'error', message: 'Failed to open chat. Check the popup instead.' });
+              }
+            }
+          }
+        ]
       });
 
       window.getSelection()?.removeAllRanges();
@@ -147,4 +183,5 @@ export default App;
 type NotificationState = {
   type: 'success' | 'error' | 'info';
   message: string;
+  actions?: NotificationAction[];
 };
